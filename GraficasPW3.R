@@ -14,7 +14,6 @@ names(data)
 (conjunta <- prop.table(x=table(data$home.score,data$away.score)))
 
 #Realiza lo siguiente:
-
 casa <- as.data.frame(casa)
 casa <- rename(casa,Goles=Var1, Probabilidad=Freq)
 visitante <- as.data.frame(visitante)
