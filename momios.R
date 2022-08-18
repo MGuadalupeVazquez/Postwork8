@@ -86,41 +86,48 @@ head(data, n = 2L); tail(data, n = 2L)
 # Data frames de partidos y equipos
 md <- select(data, date:away.score)
 write.csv(md, "match.data.csv", row.names = FALSE)
-df <- create.fbRanks.dataframes(scores.file = "match.data.csv")
-teams <- df$teams; scores <- df$scores
+df <- create.fbRanks.dataframes(scores.file = "match.data.csv") 
+# df es una lista que contiene 4 data frames, entre ellos
+# scores tiene toda la información de match.data.csv
+# y teams tiene los nombres de todos los equipos
+teams <- df$teams; scores <- df$scores #extraemos dichos dataframes por separado
 head(teams, n = 2L); dim(teams); head(scores, n = 2L); dim(scores)
 
 # Conjuntos iniciales de entrenamiento y de prueba
-Ym <- format(scores$date, "%Y-%m")
-Ym <- unique(Ym)
-places <- which(Ym[15]==format(scores$date, "%Y-%m")) # Consideramos partidos de
-                            #15 meses para comenzar a ajustar el modelo
-ffe <- scores$date[max(places)] # Fecha final conjunto de entrenamiento
+Ym <- format(scores$date, "%Y-%m") #extraemos mes y año de las fechas de todos los partidos
+Ym <- unique(Ym) #obtenemos las fechas (mes y año) sin repetición en que se jugaron partidos
+places <- which(Ym[15]==format(scores$date, "%Y-%m")) # Obtenemos todos los
+#partidos que se jugaron en el mes 15 (diciembre de 2011)
+ffe <- scores$date[max(places)] # Fecha final conjunto de entrenamiento / último día en 
+# que se jugó un partido en el mes 15.
 
 # Consideraremos partidos de 15 meses para comenzar a ajustar el modelo. Así, nuestro primer conjunto de entrenamiento consiste de datos de partidos hasta el `r ffe` 
-train <- scores %>% filter(date <= ffe)
-test <- scores %>% filter(date > ffe)
+train <- scores %>% filter(date <= ffe)#partidos jugados hasta del mes 15 
+test <- scores %>% filter(date > ffe)#partidos jugados después del mes 15
 
 head(train, n = 1); tail(train, n = 1)
 head(test, n = 1); tail(test, n = 1)
 
 # Primer ajuste del modelo
 
-traindate <- unique(train$date)
+#vectores de fechas únicas en que se jugaron partidos
+traindate <- unique(train$date) 
 testdate <- unique(test$date)
 
 ranks <- rank.teams(scores = scores, teams = teams, 
                     min.date = traindate[1], 
                     max.date = traindate[length(traindate)])
+#el modelo se ajusta utilizando la función glm ( generalized linear models)
 
-# Primera predicción
 
+
+# Primera predicción para los partidos en la primera fecha de prueba
 pred <- predict(ranks, date = testdate[1])
 
-phs <- pred$scores$pred.home.score # predicted home score
-pas <- pred$scores$pred.away.score # predicted away score
-pht <- pred$scores$home.team # home team in predictions
-pat <- pred$scores$away.team # away team in predictions
+phs <- pred$scores$pred.home.score # predicción para home score
+pas <- pred$scores$pred.away.score # predicción para away score
+pht <- pred$scores$home.team # predicción para home team
+pat <- pred$scores$away.team # predicción para away team
 
 # Continuar ajustando y prediciendo
 

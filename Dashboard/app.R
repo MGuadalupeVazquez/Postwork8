@@ -31,7 +31,7 @@ ui <-
           menuItem("Gráficas de barras", tabName = "barras", icon = icon("chart-area")),
           menuItem("Probabilidades", tabName = "prob", icon = icon("file-picture-o")),
           menuItem("Conjunto de datos", tabName = "data_table", icon = icon("table")),
-          menuItem("Promedio y máximo", tabName = "img", icon = icon("file-picture-o"))
+          menuItem("Factores de ganancia", tabName = "img", icon = icon("file-picture-o"))
         )
         
       ),
@@ -45,17 +45,24 @@ ui <-
           tabItem(tabName = "barras",
                   
                   fluidRow(
-                    box(title = "Histograma del número de goles por equipo", 
+                    box(title = "Gráficas del número de goles por equipo considerando las victorias, derrotas y empates", 
                         status = "primary", solidHeader = TRUE,
                         width = 12,
+                        
+                        br(), #salto de línea
+                        
+                        p("En las gráficas se incluyen los Resultados de tiempo completo (FTR) para todos los equipos de la liga, 
+                          donde:", style =" font-si16pt"),
+                        p("H = Victoria del equipo de casa,", style =" font-si16pt"), 
+                        p("A = Victoria del equipo visitante, y", style =" font-si16pt"), 
+                        p("D = Empate.", style =" font-si16pt"),
+                        
+                        br(), #salto de línea
+                        
                         selectInput("x", "Seleccione el valor de X",
                                     choices = c("home.score", "away.score")),
-                        
-                        #Barra lateral con una entrada deslizante para el número de bins.
-                        box(
-                          sliderInput("bins", "Número de observaciones:", 1, 15, 8)
-                        )
                     ),
+                    
                     
                     #Muestra la gráfica de barras con la configuración deseada.
                     plotOutput("plotb", width="auto", height = 600)
@@ -88,7 +95,7 @@ ui <-
           
           tabItem(tabName = "data_table",
                   fluidRow( 
-                    box(title = "Datos de la liga española de soccer", 
+                    box(title = "Datos de la primera división de la liga española", 
                         status = "primary", solidHeader = TRUE,
                         width = 12,
                         dataTableOutput ("data_table")
@@ -122,29 +129,27 @@ ui <-
 server <- function(input, output) {
   
   #Carga del conjunto de datos match.data.csv
-  data <- read.csv("match.data.csv")
+  data <- read.csv("match.data.csv", header = T)
   
   #Cambiamos el formato de la columna fecha.
   data <- mutate(data, date = as.Date(date, "%Y-%m-%d"))
   
+  #Agregamos una variable de los Resultados de tiempo completo (FTR), donde H = victoria del equipo de casa, 
+  #A = victoria del equipo visitante y D = empate. 
+  data <- mutate(data, FTR = ifelse(home.score > away.score, "H", 
+                                    ifelse(home.score < away.score, "A", "D")))
+  
   output$plotb <- renderPlot({
     
-    #Generaramos los bins basados en input$bins de la sección ui
+    #Generamos las gráficas de barras con respecto a la selección de entrada (input$x).
     x <- data[,input$x]
-    bin <- seq(min(x), max(x), length.out = input$bins + 1)
     
-    
-    #Generamos las gráficas de barras con el número especificado de bins.
-    ggplot(data, aes(x, color=factor(away.team))) + 
-      geom_histogram(breaks = bin) +
-      labs(xlim = c(0, max(x))) + 
-      theme_light() + 
-      theme(legend.position="none")+
-      theme(axis.title=element_text(size=10,face="bold")) +
-      xlab(input$x) + ylab("Frecuencia") + 
-      facet_wrap("away.team")
-    
-    
+    data %>% ggplot(aes(x, fill = FTR)) + 
+      geom_bar() + 
+      labs(x =input$x, y = "Frecuencia de goles", ylim(0, 85)) + 
+      facet_wrap("away.team") +
+      theme(legend.position = "top") +
+      scale_fill_manual(values = c("#E69F00", "#CCEDB1", "#41B7C4"))
   })
   
   
