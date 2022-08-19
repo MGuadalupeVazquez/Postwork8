@@ -121,89 +121,135 @@ ranks <- rank.teams(scores = scores, teams = teams,
 
 
 
-# Primera predicción para los partidos en la primera fecha de prueba
+# Primera predicción
 pred <- predict(ranks, date = testdate[1])
+#muestra en pantalla los partidos de la primera fecha de prueba
+#aparece el equipo de casa vs el equipo visitante
+#las probabilidades de que gane el equipo de casa HW (Home Win)
+# de que gane el equipo vistante AW (Away Win)
+# y la probabilidad de empate T (Tie)
+# la predicción del marcador en 'pred score' y el verdadero marcador 'actual'
 
-phs <- pred$scores$pred.home.score # predicción para home score
-pas <- pred$scores$pred.away.score # predicción para away score
-pht <- pred$scores$home.team # predicción para home team
-pat <- pred$scores$away.team # predicción para away team
+
+phs <- pred$scores$pred.home.score # 'pred score' de los equipos de casa
+pas <- pred$scores$pred.away.score # 'pred score' de los equipos visitantes
+pht <- pred$scores$home.team # equipos de casa
+pat <- pred$scores$away.team # equipos visitantes
 
 # Continuar ajustando y prediciendo
 
 phs <- NULL; pas <- NULL; pht <- NULL; pat <- NULL
+
 for(i in 1:(length(unique(scores$date))-170)){
+  ##Se ajusta el modelo a partidos jugados en 170 fechas diferentes
   ranks <- rank.teams(scores = scores, teams = teams, 
                       min.date = unique(scores$date)[i], 
                       max.date = unique(scores$date)[i+170-1], 
                       silent = TRUE,
                       time.weight.eta = 0.0005)
+  #se predicen los partidos de la fecha inmediata posterior
   pred <- predict(ranks, date = unique(scores$date)[i+170],
-                  silent = TRUE)
-  
-  phs <- c(phs, pred$scores$pred.home.score) # predicted home score
-  pas <- c(pas, pred$scores$pred.away.score) # predicted away score
-  pht <- c(pht, pred$scores$home.team) # home team in predictions
-  pat <- c(pat, pred$scores$away.team) # away team in predictions
+                  silent = TRUE) #el parametro silent evita que
+  #se impriman los resultados en cada iteración
+
+  phs <- c(phs, pred$scores$pred.home.score) # va agregando al final del vector los puntajes del equipo de casa predichos en cada iteración
+  pas <- c(pas, pred$scores$pred.away.score) # # va agregando al final del vector los puntajes del equipo visitante predichos en cada iteración
+  pht <- c(pht, pred$scores$home.team) # va agregando al final del vector el equipo de casa
+  pat <- c(pat, pred$scores$away.team) # va agregando al final del vector el equipo visitante
 }
 
 # Eliminamos NA's
-buenos <- !(is.na(phs) | is.na(pas))
+buenos <- !(is.na(phs) | is.na(pas)) # la negación de la disyunción es la
+#negación de cada elemento de la conjunción por lo que seleccionamos aquellas
+#predicciones que no tuvieron valores nulos ni en los goles del equipo de casa ni 
+#en los goles del equipo visitante
 phs <- phs[buenos] # predicted home score
 pas <- pas[buenos] # predicted away score
 pht <- pht[buenos] # home team in predictions
 pat <- pat[buenos] # away team in predictions
+
+#se selecciona toda la información de los partidos que por la fecha de juego
+#pertenecen al conjunto de prueba
 momio <- data %>% filter(date >= unique(scores$date)[171]) # momios conjunto de prueba
+
+#seleccionamos los partidos que tuvieron una 'buena' predicción (sin valores nulos)
 momio <- momio[buenos,]
+
+#proporción de aciertos en el pronóstico de equipos de casa y equipos visitantes
 mean(pht == momio$home.team); mean(pat == momio$away.team)
+
+#proporción de aciertos en el pronóstico de los partidos que tuvieron más de 2.5 goles totales
 mean(phs + pas > 2.5 & momio$home.score + momio$away.score > 2.5)
+
+#proporción de aciertos en el pronóstico de los partidos que tuvieron menos de 2.5 goles totales
 mean(phs + pas < 2.5 & momio$home.score + momio$away.score < 2.5)
+
 hs <- momio$home.score
 as <- momio$away.score
 
-# Probabilidades condicionales
+# Probabilidades condicionales P(A|B)=P(A^B)/P(B)
 
 # proporción de partidos con más de tres goles según el modelo
 mean(phs + pas > 3)
+
+# "Apuesta Over/Under: apuestas realizadas de acuerdo con un parámetro establecido
+# por el sitio de apuestas. Por ejemplo, puedes apostar si el juego tendrá más o 
+# menos de 1,5 goles en total)."
+
 # probabilidad condicional estimada de ganar en over 2.5
-mean(phs + pas > 3 & hs + as > 2.5)/mean(phs + pas > 3) 
+#probabilidad de que el verdadero marcador sume más de 2.5 goles
+#dado que se predijo que el marcador sumaría más de 3 goles
+mean(hs + as > 2.5 & phs + pas > 3)/mean(phs + pas > 3) 
+
 # proporción de partidos con menos de 2.1 goles según el modelo
 mean(phs + pas < 2.1)
+
 # probabilidad condicional estimada de ganar en under 2.5
-mean(phs + pas < 2.1 & hs + as < 2.5)/mean(phs + pas < 2.1) 
+#probabilidad de que el verdadero marcador sume menos de 2.5 goles
+#dado que se pronosticó que el marcador sumaría menos de 2.1 goles
+mean(hs + as < 2.5 & phs + pas < 2.1)/mean(phs + pas < 2.1) 
 
 # Juegos con momios máximos
 
+# Inicia la apuesta con 50000
+# g guardará las fluctuaciones del capital
 cap <- 50000; g <- NULL
 
+#iteramos en cada partido con una apuesta de 1000
 for(j in 1:length(phs)){
-  if(((phs[j] + pas[j]) > 3) & (0.64/(momio$Max.2.5.O[j]^-1) > 1)){
+  if( ((phs[j] + pas[j]) > 3) & (0.64/(momio$Max.2.5.O[j]^-1) > 1)){
+    # si el pronóstico fue acertado de un total mayor a 3 goles, el capital aumenta según el momio over máximo
     if((hs[j] + as[j]) > 2.5) cap <- cap + 1000*(momio$Max.2.5.O[j]-1)
-    else cap <- cap - 1000
-    g <- c(g, cap)
+    else cap <- cap - 1000 #si el pronóstico falló, disminuye el capital
+    g <- c(g, cap) #se guarda el capital actual
   }
   
   if(((phs[j] + pas[j]) < 2.1) & (0.58/(momio$Max.2.5.U[j]^-1) > 1)){
+    # si el pronóstico fue acertado de un total menor a 2.1 goles, el capital aumenta según el momio under máximo
     if((hs[j] + as[j]) < 2.5) cap <- cap + 1000*(momio$Max.2.5.U[j]-1)
-    else cap <- cap - 1000
-    g <- c(g, cap)
+    else cap <- cap - 1000 #si el pronóstico falló, disminuye el capital
+    g <- c(g, cap) #se guarda el capital actual
   }
 }
 
-# Escenario con momios máximos
 
-g <- data.frame(Num_Ap = 1:length(g), Capital = g)
-(p <- ggplot(g, aes(x=Num_Ap, y=Capital)) + geom_line(color="pink", size=1.5) + geom_point(color="red",size=0.3) +
+# Escenario con momios máximos
+g <- data.frame(Num_Ap = 1:length(g), Capital = g) #convertimos el vector g a dataframe para usar ggplot
+(p <- ggplot(g, aes(x=Num_Ap, y=Capital)) + 
+    geom_line(color="pink", size=1.5) + 
+    geom_point(color="red",size=0.3) +
+    geom_hline(yintercept=50000, linetype = "dashed")+
   labs(x = "Número de juego", 
        y = "Capital",
-       title = "Realizando una secuencia de juegos") +
+       title = "Escenario con momios máximos") +
   theme(plot.title = element_text(size=12))  +
   theme(axis.text.x = element_text(color="red" , size = 10, angle = 0, hjust = 1),
-        axis.text.y = element_text(color="red" , size = 10, angle = 0, hjust = 1))) 
+        axis.text.y = element_text(color="red" , size = 10, angle = 0, hjust = 1)))
         # color, ángulo y estilo de las abcisas y ordenadas 
 
-# Escenario con momios promedio
 
+# Escenario con momios promedio (el razonamiento es análogo a momios máximos pero varía la ponderación
+# de las ganancias con el momio over o under promedio, según corresponda)
 cap <- 50000; g <- NULL
 
 for(j in 1:length(phs)){
@@ -221,10 +267,13 @@ for(j in 1:length(phs)){
 }
 
 g <- data.frame(Num_Ap = 1:length(g), Capital = g)
-(p <- ggplot(g, aes(x=Num_Ap, y=Capital)) + geom_line(color="cyan", size=1.5) + geom_point(color="blue",size=0.3) +
+(p <- ggplot(g, aes(x=Num_Ap, y=Capital)) + 
+    geom_line(color="cyan", size=1.5) + 
+    geom_point(color="blue",size=0.3) +
+    geom_hline(yintercept=50000, linetype = "dashed")+
   labs(x = "Número de juego", 
        y = "Capital",
-       title = "Realizando una secuencia de juegos") +
+       title = "Escenario con momios promedio") +
   theme(plot.title = element_text(size=12))  +
   theme(axis.text.x = element_text(face = "bold", color="blue" , size = 10, angle = 0, hjust = 1),
         axis.text.y = element_text(face = "bold", color="blue" , size = 10, angle = 0, hjust = 1)))
