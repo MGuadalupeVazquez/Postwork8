@@ -55,7 +55,7 @@ ui <-
                           donde:", style =" font-si16pt"),
                         p("H = Victoria del equipo de casa,", style =" font-si16pt"), 
                         p("A = Victoria del equipo visitante, y", style =" font-si16pt"), 
-                        p("D = Empate.", style =" font-si16pt"),
+                        p("T = Empate.", style =" font-si16pt"),
                         
                         br(), #salto de línea
                         
@@ -135,9 +135,9 @@ server <- function(input, output) {
   data <- mutate(data, date = as.Date(date, "%Y-%m-%d"))
   
   #Agregamos una variable de los Resultados de tiempo completo (FTR), donde H = victoria del equipo de casa, 
-  #A = victoria del equipo visitante y D = empate. 
+  #A = victoria del equipo visitante y T = empate. 
   data <- mutate(data, FTR = ifelse(home.score > away.score, "H", 
-                                    ifelse(home.score < away.score, "A", "D")))
+                                    ifelse(home.score < away.score, "A", "T")))
   
   output$plotb <- renderPlot({
     
