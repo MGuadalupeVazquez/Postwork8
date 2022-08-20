@@ -234,7 +234,7 @@ mean(phs + pas > 3)
 # Probabilidad de que el verdadero marcador sume más de 2.5 goles dado que el 
 # modelo pronosticó que el marcador sumaría más de 3 goles
 p.over <- mean(hs + as > 2.5 & phs + pas > 3)/mean(phs + pas > 3) 
-p.over <- round(pc.over.2.5, 2)
+p.over <- round(p.over, 2)
 
 
 # Probabilidad condicional estimada de ganar en under 2.5
@@ -244,7 +244,7 @@ mean(phs + pas < 2.1)
 # Probabilidad de que el verdadero marcador sume menos de 2.5 goles dado que 
 # se pronosticó que el marcador sumaría menos de 2.1 goles
 p.under <- mean(hs + as < 2.5 & phs + pas < 2.1)/mean(phs + pas < 2.1) 
-p.under <- round(pc.under.2.5,2)
+p.under <- round(p.under,2)
 
 
 
