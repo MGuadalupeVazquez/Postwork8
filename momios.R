@@ -264,6 +264,8 @@ for(j in 1:length(phs)){
     if(hs[j] + as[j] > 2.5) cap <- cap + 1000*(momio$Max.2.5.O[j]-1)
     # Si el pronóstico fallá, perdemos lo apostado del capital
     else cap <- cap - 1000
+    
+    g <- c(g, cap) # Se captura el capital después apostar
   }
 
   # Si el modelo predice menos de 2.1 goles y la tasa de ganancia bruta esperada*
@@ -273,9 +275,9 @@ for(j in 1:length(phs)){
     if((hs[j] + as[j]) < 2.5) cap <- cap + 1000*(momio$Max.2.5.U[j]-1)
     # Si el pronóstico fallá, perdemos lo apostado del capital
     else cap <- cap - 1000
+    
+    g <- c(g, cap) # Se captura el capital después apostar
   }
-
-  g <- c(g, cap) # Se captura el capital después de cada apuesta
 }
 # *Nota: TGB esperada = Prob(Ganar) x Momio + Prob(Perder) x 0
 #                     = Prob(Ganar) x Momio
@@ -308,14 +310,16 @@ for(j in 1:length(phs)){
   if((phs[j] + pas[j] > 3) & (p.over * momio$Avg.2.5.O[j] > 1)){
     if(hs[j] + as[j] > 2.5) cap <- cap + 1000*(momio$Avg.2.5.O[j]-1)
     else cap <- cap - 1000
+    
+    g <- c(g, cap)
   }
   
   if((phs[j] + pas[j] < 2.1) & (p.under * momio$Avg.2.5.U[j] > 1)){
     if(hs[j] + as[j] < 2.5) cap <- cap + 1000*(momio$Avg.2.5.U[j]-1)
     else cap <- cap - 1000
+    
+    g <- c(g, cap)
   }
-
-  g <- c(g, cap)
 }
 
 # Escenario con momios promedio
