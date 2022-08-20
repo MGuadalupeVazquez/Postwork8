@@ -217,6 +217,7 @@ cap <- 50000; g <- NULL
 
 #iteramos en cada partido con una apuesta de 1000
 for(j in 1:length(phs)){
+  #se elige apuesta uver o under, según sea el caso y si conviene apostar o no según el momio
   if( ((phs[j] + pas[j]) > 3) & (0.64/(momio$Max.2.5.O[j]^-1) > 1)){
     # si el pronóstico fue acertado de un total mayor a 3 goles, el capital aumenta según el momio over máximo
     if((hs[j] + as[j]) > 2.5) cap <- cap + 1000*(momio$Max.2.5.O[j]-1)
